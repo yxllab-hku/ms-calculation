@@ -6,25 +6,31 @@ import numpy as np
 
 working_path = str(os.getcwd())
 
-etoga = argparse.ArgumentParser(description='example:python gen_ms2_table.py -seq GMYRPYIAKYVEEQTLQNSTNLVYDDITQISFINKEKNVKKINLGPDTTIVTETIENADPDEYFLDPDTTIHTFTVENNDTDEHYCGPETTRITKTLENIDPDEYYS -mod H -mod_num 2 -charge 10 -o test')
+etoga = argparse.ArgumentParser(description='example:python gen_ms2_table.py -seq GMYRPYIAKYVEEQTLQNSTNLVYDDITQISFINKEKNVKKINLGPDTTIVTETIENADPDEYFLDPDTTIHTFTVENNDTDEHYCGPETTRITKTLENIDPDEYYS -mod H2O -mod_num 2 -charge 10 -mn 1 -o test')
 etoga.add_argument('-seq', type=str, nargs=1, required=True, help='input sequence')
-etoga.add_argument('-mod',type=str,nargs=1, help='modification type,such as H,H2O')
+etoga.add_argument('-mod',type=str,nargs=1, help='modification type,such as -H,-H2O> -mod_num <numbers of modification, range from 0 to very large number, you could estimate the number based on the residues involved in the modification')
 etoga.add_argument('-mod_num',type=str,nargs=1,help='numbers of modification, range from 0 to very large number, you could estimate the number based on the residues involved in the modification')
 etoga.add_argument('-charge',type=str,nargs=1, required=True, help='numbers of charge,range from 0 to very large number')
+etoga.add_argument('-mn',type=str,nargs=1, help='the number of modification at the same time, such as dropping 2 H')
 etoga.add_argument('-o', type=str, nargs=1, required=True, help='output filename, without suffix')
 
 args = etoga.parse_args()
 
+
+if args.mod is not None and (args.mod_num is None or args.mn is None):
+   print('please provide the value of mod_num and mn!!!')
+   sys.exit()
+
 monomass={'A':71.037113805,'R':156.10111105,'N':114.04292747,'D':115.026943065,'C':103.009184505,'E':129.042593135,'Q':128.05857754,'G':57.021463735,'H':137.058911875,'I':113.084064015,'L':113.084064015,'K':128.09496305,'M':131.040484645,'F':147.068413945,'P':97.052763875,'S':87.032028435,'T':101.047678505,'W':186.07931298,'Y':163.063328575,'V':99.068413945}
 
-def gen_multiseq(seq,sig,mod,mod_num):
+def gen_multiseq(seq,sig,mod,mod_num,mn):
     mindex=[]
     seqlist=[]
     for i in range(len(seq)):
         if mod==None:
            mindex.append('%s%s'%(sig,str(i+1)))
         else:
-           mindex.append('%s%s-%s%s'%(sig,str(i+1),str(mod_num),str(mod)))
+           mindex.append('%s%s-%s%s'%(sig,str(i+1),str(mod_num*mn),str(mod)))
         if sig=='b':
            seqlist.append(seq[:(i+1)])
         else:
@@ -32,14 +38,16 @@ def gen_multiseq(seq,sig,mod,mod_num):
     return mindex,seqlist
 
 
-def isomass(multiseq,monomass,sig,mod,mod_num):
+def isomass(multiseq,monomass,sig,mod,mod_num,mn):
     im=[]
     if mod is None:
        mdv=0
     if mod=='H':
-       mdv=-mod_num*1.007825035
+       mdv=-mn*mod_num*1.007825035
     if mod=='H2O':
-       mdv=-mod_num*(2*1.007825035+15.99491463)
+       mdv=-mn*mod_num*(2*1.007825035+15.99491463)
+    if mod=='CH3':
+       mdv=mn*mod_num*14.01565007
     for i in multiseq:
         m=0
         for j in i:
